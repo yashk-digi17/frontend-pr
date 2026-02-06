@@ -44,34 +44,22 @@ jobs:
         run: |
           npm run lint > eslint-output.txt 2>&1 || true
 
-      - name: Post ESLint errors to PR comment
+      - name: Comment ESLint errors
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-
-            const path = 'frontend/eslint-output.txt';
-
-            if (!fs.existsSync(path)) {
-            core.setFailed('eslint-output.txt not found');
-            return;
-            }
-
-            const output = fs.readFileSync(path, 'utf8').trim();
-
-            if (output.length === 0) {
-            console.log('No ESLint errors');
-            return;
-            }
-
-            await github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-            body: `❌ **ESLint Errors**\n\n\`\`\`\n${output.slice(0, 60000)}\n\`\`\``
+            const text = fs.readFileSync('frontend/eslint.txt', 'utf8');
+            if (text.trim()) {
+              await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `❌ ESLint Errors:\n\n\`\`\`\n${text}\n\`\`\``
             });
+            }
 
 
 
