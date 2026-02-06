@@ -36,19 +36,19 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint
-        continue-on-error: true
+#        continue-on-error: true
 
       - name: Run Prettier check
         run: npx prettier --write .
-        continue-on-error: true
+     #   continue-on-error: true
 
       - name: Security audit
         run: npm audit --audit-level=high
-        continue-on-error: true
+ #       continue-on-error: true
         
       - name: Security audit fix
         run: npm audit fix --force
-        continue-on-error: true
+#        continue-on-error: true
 
       - name: Build React app
         run: npm run build
