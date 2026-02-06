@@ -1,0 +1,141 @@
+name: CI Develop
+run-name: "CI develop - ${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - develop
+env:
+  AWS_REGION: ap-south-1
+  AWS_ACCOUNT_ID: 555977952558
+  ECR_REPOSITORY: my-proj
+
+  APP_NAME: VCCSM-backend
+  GITOPS_REPO: myproject-gitops
+  GITOPS_ENV: main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.get-tag.outputs.tag }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Generate image tag
+        id: get-tag
+        uses: ./.github/actions/get-tag
+
+      - name: Show image tag (debug)
+        run: echo "IMAGE TAG = ${{ steps.get-tag.outputs.tag }}"
+
+  container-build:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DEVELOP_AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Debug value from setup
+        run: echo "FROM SETUP = '${{ needs.setup.outputs.tags }}'"
+
+      - name: Build and push image
+        uses: ./.github/actions/container-build
+        with:
+          aws-role-to-assume: ${{ vars.DEVELOP_AWS_ROLE_ARN }}
+          ecr-repository: ${{ env.ECR_REPOSITORY }}
+          aws-region: ${{ env.AWS_REGION }}
+          aws-account-id: ${{ env.AWS_ACCOUNT_ID }}
+          tags: ${{ needs.setup.outputs.tags }}
+          platforms: linux/amd64
+
+  container-tag:
+    needs:
+      - setup
+      - container-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DEVELOP_AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Tag image
+        uses: ./.github/actions/container-tag
+        with:
+          repository: ${{ env.ECR_REPOSITORY }}
+          source-tag: ${{ needs.setup.outputs.tags }}
+          target-tag: develop
+          aws-region: ${{ env.AWS_REGION }}
+         # tags: develop
+
+  deploy:
+    needs:
+      - setup
+      - container-tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID}}
+          #installation-id: ${{ secrets.APP_INSTALLATION_ID}}
+          private-key: ${{ secrets.APP_PRIVATE_KEY}}
+          owner: darshanh2003
+          repositories: myproject-gitops
+
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: darshanh2003/myproject-gitops
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+ 
+      - name: Patch Helm values
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yq
+
+           TAG="${{ needs.setup.outputs.tags }}"
+           FILE="dev/my-app/values.yaml"
+
+          echo "Updating image tag to: $TAG"
+          echo "Target file: $FILE"
+
+          yq -y -i ".image.tag = \"$TAG\"" "$FILE"
+
+          git config user.name "gitops-bot"
+          git config user.email "gitops@company.com"
+
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git add "$FILE"
+          git commit -m "gitops: update image tag to $TAG"
+          git push
+

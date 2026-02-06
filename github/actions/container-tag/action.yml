@@ -1,0 +1,29 @@
+name: Container Tag
+
+inputs:
+  repository:
+    required: true
+  source-tag:
+    required: true
+  target-tag:
+    required: true
+  aws-region:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Retag image in ECR
+      shell: bash
+      run: |
+        aws ecr batch-get-image \
+          --repository-name "${{ inputs.repository }}" \
+          --image-ids imageTag="${{ inputs.source-tag }}" \
+          --region "${{ inputs.aws-region }}" \
+        | jq -r '.images[].imageManifest' > manifest.json
+
+        aws ecr put-image \
+          --repository-name "${{ inputs.repository }}" \
+          --image-tag "${{ inputs.target-tag }}" \
+          --image-manifest file://manifest.json \
+          --region "${{ inputs.aws-region }}"

@@ -1,0 +1,17 @@
+name: Get Tag
+description: Generate image tag
+
+outputs:
+  tag:
+    description: Generated image tag
+    value: ${{ steps.generate.outputs.tag }}
+
+runs:
+  using: composite
+  steps:
+    - id: generate
+      shell: bash
+      run: |
+        SHORT_SHA=$(git rev-parse --short HEAD)
+        TAG="develop-$(date +%Y%m%d)-$SHORT_SHA"
+        echo "tag=$TAG" >> $GITHUB_OUTPUT

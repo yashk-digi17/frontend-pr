@@ -1,0 +1,44 @@
+name: Container Build (ECR)
+
+description: Build and push Docker image to AWS ECR
+
+inputs:
+  aws-role-to-assume:
+    required: true
+  aws-region:
+    required: true
+  aws-account-id:
+    required: true
+  ecr-repository:
+    required: true
+  platforms:
+    required: true
+  tags:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-to-assume }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Login to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Set up Docker Buildx
+      shell: bash
+      run: |
+        docker buildx create --use --name multiarch || docker buildx use multiarch
+
+    - name: Build and push image to ECR
+      shell: bash
+      run: |
+        ECR_URI=${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com/${{ inputs.ecr-repository }}
+
+        docker buildx build \
+          --platform ${{ inputs.platforms }} \
+          -t $ECR_URI:${{ inputs.tags }} \
+          --push .
