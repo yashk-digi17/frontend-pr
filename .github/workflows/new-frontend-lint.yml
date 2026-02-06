@@ -64,5 +64,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
           eslint_flags: "src/"
-          workdir: frontend
+          workdir: frontend/
           filter_mode: nofilter
