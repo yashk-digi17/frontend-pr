@@ -62,7 +62,7 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: context.issue.number,
-            body: `❌ **ESLint Errors**\n\n\`\`\`\n${text}\n\`\`\``
+            body: ` **ESLint Errors**\n\n\`\`\`\n${text}\n\`\`\``
             });
 
 
