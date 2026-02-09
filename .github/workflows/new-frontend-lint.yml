@@ -2,16 +2,16 @@ name: Frontend React Lint
 
 on:
   pull_request:
-      branches:
-        - sub-new
+    branches:
+      - sub-new
   push:
     branches:
       - sub-new
 
 permissions:
   contents: read
-  pull-requests: write   #  REQUIRED FOR COMMENTS
-  
+  pull-requests: write   # REQUIRED FOR COMMENTS
+
 concurrency:
   group: frontend-lint-${{ github.ref }}
   cancel-in-progress: true
@@ -39,11 +39,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run ESLint and save output
+      # Run ESLint and capture output into a file
+      - name: Run ESLint
         run: |
           npm run lint > eslint.txt 2>&1 || true
-        working-directory: frontend
 
+      # Post ESLint errors as a bot comment in the PR conversation
       - name: Comment ESLint errors
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -51,7 +52,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-
             const file = 'frontend/eslint.txt';
             if (!fs.existsSync(file)) return;
 
@@ -59,48 +59,20 @@ jobs:
             if (!text) return;
 
             await github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-            body: ` **ESLint Errors**\n\n\`\`\`\n${text}\n\`\`\``
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `⚠️ **ESLint Errors**\n\n\`\`\`\n${text}\n\`\`\``
             });
-
-
-
-
-
- #     - name: Run ESLint
- #       run: npm run lint
- #       continue-on-error: true
-
-      - name: Run ESLint and capture output
-        working-directory: frontend
-        run: |
-         npm run lint 2>&1 | tee eslint.txt
-  #       continue-on-error: true
-
 
       - name: Run Prettier check
         run: npx prettier --write .
-     #   continue-on-error: true
 
       - name: Security audit
         run: npm audit --audit-level=high
- #       continue-on-error: true
-        
+
       - name: Security audit fix
         run: npm audit fix --force
-#        continue-on-error: true
 
       - name: Build React app
         run: npm run build
-
-   #   - name: ESLint with PR comments
-   #     uses: reviewdog/action-eslint@v1
-   #     with:
-   #       github_token: ${{ secrets.GITHUB_TOKEN }}
-   #       reporter: github-pr-review
-   #       eslint_flags: "src/"
-   #       workdir: frontend/
-   #       filter_mode: nofilter
-
