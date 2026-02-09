@@ -40,11 +40,13 @@ jobs:
         run: npm ci
 
       # Run ESLint and capture output into a file
-      - name: Run ESLint
-        run: |
-          npm run lint > eslint.txt 2>&1 || true
+
 
       # Post ESLint errors as a bot comment in the PR conversation
+      - name: Run ESLint
+        run: |
+          npm run lint -- --format unix > eslint.txt 2>&1 || true
+
       - name: Comment ESLint errors
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -52,7 +54,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const file = 'frontend/eslint.txt';
+            const file = 'eslint.txt';  // fixed path
             if (!fs.existsSync(file)) return;
 
             const text = fs.readFileSync(file, 'utf8').trim();
@@ -64,6 +66,7 @@ jobs:
               issue_number: context.issue.number,
               body: `⚠️ **ESLint Errors**\n\n\`\`\`\n${text}\n\`\`\``
             });
+
 
       - name: Run Prettier check
         run: npx prettier --write .
