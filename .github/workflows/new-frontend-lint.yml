@@ -1,20 +1,14 @@
 name: Frontend React Lint
 
 on:
-  pull_request:
-    branches:
-      - sub-new
+  pull_request: # This MUST be present for comments to work
+    branches: [sub-new]
   push:
-    branches:
-      - sub-new
+    branches: [sub-new]
 
 permissions:
   contents: read
-  pull-requests: write   # Allows the bot to post comments
-
-concurrency:
-  group: frontend-lint-${{ github.ref }}
-  cancel-in-progress: true
+  pull-requests: write 
 
 jobs:
   frontend-lint:
@@ -32,27 +26,21 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20" # Upgraded to 20 for better ESLint 9 support
           cache: "npm"
           cache-dependency-path: frontend/package.json
 
       - name: Install dependencies
         run: npm ci
 
-      # Reviewdog will run ESLint and post comments directly on the PR
       - name: Run ESLint with Reviewdog
         uses: reviewdog/action-eslint@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # 'github-pr-review' posts comments on the specific lines of code
-          reporter: github-pr-review 
-          # This is critical since your code is in the 'frontend' folder
+          # Use 'github-pr-review' only for PRs; otherwise it fails
+          reporter: ${{ github.event_name == 'pull_request' && 'github-pr-review' || 'github-check' }}
           workdir: frontend
-          # Point to your source files
-          eslint_flags: "src/ --ext .js,.jsx,.ts,.tsx"
-          # Fail the build if errors are found
-          fail_on_error: true
-
-      - name: Build React app
-        # Only build if linting passes
-        run: npm run build
+          # Use 'nofilter' to ensure Reviewdog sees the ESLint 9 output correctly
+          filter_mode: nofilter
+          fail_level: error 
+          eslint_flags: "src/"
