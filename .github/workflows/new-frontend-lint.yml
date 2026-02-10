@@ -2,13 +2,19 @@ name: Frontend React Lint
 
 on:
   pull_request:
-    branches: [sub-new]
+    branches:
+      - sub-new
   push:
-    branches: [sub-new]
+    branches:
+      - sub-new
 
 permissions:
   contents: read
-  pull-requests: write
+  pull-requests: write   # Allows the bot to post comments
+
+concurrency:
+  group: frontend-lint-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   frontend-lint:
@@ -33,39 +39,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 1. This handles INLINE comments (on the lines of code)
+      # Reviewdog will run ESLint and post comments directly on the PR
       - name: Run ESLint with Reviewdog
         uses: reviewdog/action-eslint@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          # 'github-pr-review' posts comments on the specific lines of code
           reporter: github-pr-review 
-          workdir: frontend # Critical: tell reviewdog where the code is
+          # This is critical since your code is in the 'frontend' folder
+          workdir: frontend
+          # Point to your source files
           eslint_flags: "src/ --ext .js,.jsx,.ts,.tsx"
-
-      # 2. This handles the SUMMARY comment (in the PR conversation box)
-      - name: Run ESLint for Summary
-        id: eslint_summary
-        run: |
-          # We use stylish format for a cleaner look in the comment
-          REPORT=$(npx eslint "src/**/*.{js,jsx,ts,tsx}" --format stylish || true)
-          # Stop the script from breaking if no errors, but save the output
-          echo "ESLINT_OUTPUT<<EOF" >> $GITHUB_ENV
-          echo "$REPORT" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Comment ESLint Summary
-        if: github.event_name == 'pull_request' && contains(env.ESLINT_OUTPUT, 'error')
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const output = process.env.ESLINT_OUTPUT;
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `### ⚠️ ESLint Report\n\n\`\`\`text\n${output}\n\`\`\``
-            });
+          # Fail the build if errors are found
+          fail_on_error: true
 
       - name: Build React app
+        # Only build if linting passes
         run: npm run build
