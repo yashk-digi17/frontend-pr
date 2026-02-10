@@ -8,7 +8,7 @@ on:
   # Keep push if you want to see status checks on your sub-branch
   push:
     branches:
-      - sub-branch
+      - sub-new
 
 permissions:
   contents: read
