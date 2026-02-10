@@ -66,7 +66,13 @@ jobs:
               issue_number: context.issue.number,
               body: `⚠️ **ESLint Errors**\n\n\`\`\`\n${text}\n\`\`\``
             });
-
+            
+      - name: Run ESLint with Reviewdog
+        uses: reviewdog/action-eslint@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review # This puts comments on the code
+          eslint_flags: ". --ext .js,.jsx,.ts,.tsx"
 
       - name: Run Prettier check
         run: npx prettier --write .
