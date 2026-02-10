@@ -2,7 +2,7 @@ name: Frontend React Lint
 
 on:
   pull_request: # This MUST be present for comments to work
-    branches: [sub-new]
+    branches: [main]
   push:
     branches: [sub-new]
 
