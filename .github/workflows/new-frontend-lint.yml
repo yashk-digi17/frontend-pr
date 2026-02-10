@@ -1,19 +1,14 @@
 name: Frontend React Lint
 
 on:
-  # This is the most important trigger for the Conversation tab
   pull_request:
-    branches:
-      - main
-  # Keep push if you want to see status checks on your sub-branch
+    branches: [main, sub-new]
   push:
-    branches:
-      - sub-new
+    branches: [main, sub-new]
 
 permissions:
   contents: read
-  pull-requests: write 
-  checks: write
+  pull-requests: write
 
 jobs:
   frontend-lint:
@@ -31,7 +26,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "20" # Node 20 is required for ESLint 9 compatibility
           cache: "npm"
           cache-dependency-path: frontend/package.json
 
@@ -42,11 +37,10 @@ jobs:
         uses: reviewdog/action-eslint@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Use 'github-pr-review' ONLY when it's a PR. 
-          # If it's a push, it falls back to 'github-check' which shows in the check tab.
+          # This reporter ensures it works on both Push and PR
           reporter: ${{ github.event_name == 'pull_request' && 'github-pr-review' || 'github-check' }}
           workdir: frontend
-          # 'nofilter' ensures ALL lint errors are reported, not just in changed lines
           filter_mode: nofilter
-          fail_on_error: true
-          eslint_flags: "src/ --ext .js,.jsx,.ts,.tsx"
+          fail_level: error
+          # Updated flags for ESLint 9 compatibility
+          eslint_flags: "src/"
