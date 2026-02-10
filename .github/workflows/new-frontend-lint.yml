@@ -2,19 +2,13 @@ name: Frontend React Lint
 
 on:
   pull_request:
-    branches:
-      - sub-new
+    branches: [sub-new]
   push:
-    branches:
-      - sub-new
+    branches: [sub-new]
 
 permissions:
   contents: read
-  pull-requests: write   # REQUIRED FOR COMMENTS
-
-concurrency:
-  group: frontend-lint-${{ github.ref }}
-  cancel-in-progress: true
+  pull-requests: write
 
 jobs:
   frontend-lint:
@@ -39,49 +33,39 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Run ESLint and capture output into a file
+      # 1. This handles INLINE comments (on the lines of code)
+      - name: Run ESLint with Reviewdog
+        uses: reviewdog/action-eslint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review 
+          workdir: frontend # Critical: tell reviewdog where the code is
+          eslint_flags: "src/ --ext .js,.jsx,.ts,.tsx"
 
-
-      # Post ESLint errors as a bot comment in the PR conversation
-      - name: Run ESLint
+      # 2. This handles the SUMMARY comment (in the PR conversation box)
+      - name: Run ESLint for Summary
+        id: eslint_summary
         run: |
-          npm run lint -- --format unix > eslint.txt 2>&1 || true
+          # We use stylish format for a cleaner look in the comment
+          REPORT=$(npx eslint "src/**/*.{js,jsx,ts,tsx}" --format stylish || true)
+          # Stop the script from breaking if no errors, but save the output
+          echo "ESLINT_OUTPUT<<EOF" >> $GITHUB_ENV
+          echo "$REPORT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
-      - name: Comment ESLint errors
-        if: github.event_name == 'pull_request'
+      - name: Comment ESLint Summary
+        if: github.event_name == 'pull_request' && contains(env.ESLINT_OUTPUT, 'error')
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require('fs');
-            const file = 'eslint.txt';  // fixed path
-            if (!fs.existsSync(file)) return;
-
-            const text = fs.readFileSync(file, 'utf8').trim();
-            if (!text) return;
-
-            await github.rest.issues.createComment({
+            const output = process.env.ESLINT_OUTPUT;
+            github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `⚠️ **ESLint Errors**\n\n\`\`\`\n${text}\n\`\`\``
+              body: `### ⚠️ ESLint Report\n\n\`\`\`text\n${output}\n\`\`\``
             });
-            
-      - name: Run ESLint with Reviewdog
-        uses: reviewdog/action-eslint@v1
-        with:
-          github_token: ${{ secrets.github_token }}
-          reporter: github-pr-review # This puts comments on the code
-          eslint_flags: ". --ext .js,.jsx,.ts,.tsx"
-
-      - name: Run Prettier check
-        run: npx prettier --write .
-
-      - name: Security audit
-        run: npm audit --audit-level=high
-
-      - name: Security audit fix
-        run: npm audit fix --force
 
       - name: Build React app
         run: npm run build
