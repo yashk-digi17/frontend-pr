@@ -1,44 +1,21 @@
-
 name: Frontend React Lint
 
 on:
   pull_request:
-      branches:
-        - main
- # push:
-  #  branches:
-  #    - sub-new
+    branches:
+      - main
+
 permissions:
   contents: read
   pull-requests: write
-  
+
 concurrency:
   group: frontend-lint-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  lint:
-   name: Lint
-   runs-on: ubuntu-latest
-   steps:
-   - name: Checkout code
-     uses: actions/checkout@v4
-
-   - name: Set up reviewdog
-     uses: reviewdog/action-setup@v1
-     with:
-        reviewdog_version: latest
-
-   - name: Install SwiftLint
-     run: brew install swiftlint
-
-   - name: Run SwiftLint
-     env:
-      REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-     run: swiftlint --reporter checkstyle | reviewdog -f=checkstyle -name="SwiftLint" -reporter=github-pr-review
-
   frontend-lint:
-    name: React Lint & Build Check
+    name: React Lint
     runs-on: ubuntu-latest
 
     defaults:
@@ -59,32 +36,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-#      - name: Run ESLint
-#        run: | 
-#         npm run lint -- -f unix > eslint-report.txt
-        continue-on-error: true
-        
-      - name: Run ESLint with Reviewdog
+      - name: ESLint (Reviewdog)
         if: github.event_name == 'pull_request'
         uses: reviewdog/action-eslint@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
           filter_mode: diff_context
-          fail_on_error: error
+          fail_level: error
           workdir: frontend
 
-      - name: Run Prettier check
-        run: npx prettier --write .
-        continue-on-error: true
-
-      - name: Security audit
-        run: npm audit --audit-level=high
-        continue-on-error: true
-        
-      - name: Security audit fix
-        run: npm audit fix --force
-        continue-on-error: true
-
- #     - name: Build React app
-#        run: npm run build
+      - name: Prettier check
+        run: npx prettier --check .
