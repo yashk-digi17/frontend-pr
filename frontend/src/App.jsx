@@ -1,6 +1,6 @@
 import FileUpload from "./pages/FileUpload";
-const x = ;
+console.log("test");
 export default function App() {
   return <FileUpload />;
 }
-const x = ;
+
