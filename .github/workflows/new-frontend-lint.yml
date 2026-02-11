@@ -44,6 +44,7 @@ jobs:
 #         npm run lint -- -f unix > eslint-report.txt
         continue-on-error: true
       - name: Run ESLint with Reviewdog
+        if: github.event_name == 'pull_request'
         uses: reviewdog/action-eslint@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
