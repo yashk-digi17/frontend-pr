@@ -50,7 +50,7 @@ jobs:
           reporter: github-pr-review
           filter_mode: diff_context
           fail_on_error: false
-          eslint_flags: .
+          workdir: frontend
 
 
       - name: Run Prettier check
