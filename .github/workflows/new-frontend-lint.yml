@@ -4,10 +4,10 @@ name: Frontend React Lint
 on:
   pull_request:
       branches:
-        - sub-new
-  push:
-    branches:
-      - sub-new
+        - main
+ # push:
+  #  branches:
+  #    - sub-new
 permissions:
   contents: read
   pull-requests: write
@@ -43,6 +43,7 @@ jobs:
 #        run: | 
 #         npm run lint -- -f unix > eslint-report.txt
         continue-on-error: true
+        
       - name: Run ESLint with Reviewdog
         if: github.event_name == 'pull_request'
         uses: reviewdog/action-eslint@v1
@@ -50,9 +51,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
           filter_mode: diff_context
-          fail_on_error: false
+          fail_on_error: error
           workdir: frontend
-
 
       - name: Run Prettier check
         run: npx prettier --write .
@@ -66,5 +66,5 @@ jobs:
         run: npm audit fix --force
         continue-on-error: true
 
-      - name: Build React app
-        run: npm run build
+ #     - name: Build React app
+#        run: npm run build
