@@ -17,6 +17,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+   name: Lint
+   runs-on: ubuntu-latest
+   steps:
+   - name: Checkout code
+     uses: actions/checkout@v4
+
+   - name: Set up reviewdog
+     uses: reviewdog/action-setup@v1
+     with:
+        reviewdog_version: latest
+
+   - name: Install SwiftLint
+     run: brew install swiftlint
+
+   - name: Run SwiftLint
+     env:
+      REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+     run: swiftlint --reporter checkstyle | reviewdog -f=checkstyle -name="SwiftLint" -reporter=github-pr-review
+
   frontend-lint:
     name: React Lint & Build Check
     runs-on: ubuntu-latest
