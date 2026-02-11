@@ -38,9 +38,9 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # FIX 2: This makes comments appear in the PR Conversation tab
-          reporter: ${{ github.event_name == 'pull_request' && 'github-pr-review' || 'github-check' }}
+          reporter: github-pr-review
           workdir: frontend
           filter_mode: nofilter
           fail_level: error
           # FIX 3: Updated flags for Flat Config compatibility
-          eslint_flags: "."
+          eslint_flags: "--format rdjson ."
