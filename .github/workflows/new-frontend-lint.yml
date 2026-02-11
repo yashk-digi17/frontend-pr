@@ -2,9 +2,9 @@ name: Frontend React Lint
 
 on:
   pull_request:
-    branches: [main]
+    branches: [**]
   push:
-    branches: [sub-new]
+    branches: [main, sub-new]
 
 permissions:
   contents: read
